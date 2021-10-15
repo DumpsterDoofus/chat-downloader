@@ -7,10 +7,12 @@ class ChatMessage:
     TimestampSeconds: float
     Author: str
     MessageText: str
-    def __init__(self, timestamp_seconds: float, author:str, message_text: str) -> None:
+    Color: str
+    def __init__(self, timestamp_seconds: float, author:str, message_text: str, color: str) -> None:
         self.TimestampSeconds = timestamp_seconds
         self.Author = author
         self.MessageText = message_text
+        self.Color = color
 
 class SrtLine:
     Index: int
@@ -18,12 +20,14 @@ class SrtLine:
     EndTimeSeconds: float
     Author: str
     MessageText: str
-    def __init__(self, index: int, start_time_seconds: float, end_time_seconds: float, author: str, message_text: str) -> None:
+    Color: str
+    def __init__(self, index: int, start_time_seconds: float, end_time_seconds: float, author: str, message_text: str, color: str) -> None:
         self.Index = index
         self.StartTimeSeconds = start_time_seconds
         self.EndTimeSeconds = end_time_seconds
         self.Author = author
         self.MessageText = message_text
+        self.Color = color
     def __seconds_to_timestamp(self, seconds: float):
         int_seconds = int(seconds)
         h, remainder = divmod(abs(int_seconds), 3600)
@@ -31,7 +35,7 @@ class SrtLine:
         milliseconds = round(1000 * (float(seconds) - int_seconds))
         return f"{'-' if seconds < 0 else ''}{h:02}:{m:02}:{s:02},{milliseconds:03}"
     def to_string(self) -> str:
-        return f'{self.Index}\n{self.__seconds_to_timestamp(self.StartTimeSeconds)} --> {self.__seconds_to_timestamp(self.EndTimeSeconds)}\n<font color="#00FF00">{self.Author}</font>: {self.MessageText}\n\n'
+        return f'{self.Index}\n{self.__seconds_to_timestamp(self.StartTimeSeconds)} --> {self.__seconds_to_timestamp(self.EndTimeSeconds)}\n<font color="#{self.Color}">{self.Author}</font>: {self.MessageText}\n\n'
 
 assHeader = """[Script Info]
 ScriptType: v4.00+
@@ -53,11 +57,13 @@ class AssLine:
     EndTimeSeconds: float
     Author: str
     MessageText: str
-    def __init__(self, start_time_seconds: float, end_time_seconds: float, author: str, message_text: str) -> None:
+    Color: str
+    def __init__(self, start_time_seconds: float, end_time_seconds: float, author: str, message_text: str, color: str) -> None:
         self.StartTimeSeconds = start_time_seconds
         self.EndTimeSeconds = end_time_seconds
         self.Author = author
         self.MessageText = message_text
+        self.Color = color
     def __seconds_to_timestamp(self, seconds: float):
         int_seconds = int(seconds)
         h, remainder = divmod(abs(int_seconds), 3600)
@@ -66,9 +72,9 @@ class AssLine:
         return f"{'-' if seconds < 0 else ''}{h:01}:{m:02}:{s:02}.{hundredths:02}"
     def to_string(self) -> str:
         fadeMilliseconds = round(1000 * (self.EndTimeSeconds - self.StartTimeSeconds) / 20)
-        return f'Dialogue: 0,{self.__seconds_to_timestamp(self.StartTimeSeconds)},{self.__seconds_to_timestamp(self.EndTimeSeconds)},,,0000,0000,0000,,{{\\move(320,480,320,360)}}{{\\fad({fadeMilliseconds},{fadeMilliseconds})}}{{\\1c&H00FF00&}}{self.Author}: {{\\1c&HFFFFFF&}}{self.MessageText}\n'
+        return f'Dialogue: 0,{self.__seconds_to_timestamp(self.StartTimeSeconds)},{self.__seconds_to_timestamp(self.EndTimeSeconds)},,,0000,0000,0000,,{{\\move(320,480,320,360)}}{{\\fad({fadeMilliseconds},{fadeMilliseconds})}}{{\\1c&H{self.Color}&}}{self.Author}: {{\\1c&HFFFFFF&}}{self.MessageText}\n'
 
-def even_spaced_timestamp_filter(chat_messages: List[ChatMessage], smoothing_interval_seconds: float = 5):
+def even_spaced_timestamp_filter(chat_messages: List[ChatMessage], smoothing_interval_seconds: float):
     """Smooths out chat message timestamps within regularly-spaced intervals, so that timestamps are more evenly-spaced. This helps readability when bursts of several messages occur at nearly the same time."""
     if len(chat_messages) == 0:
         return
@@ -98,17 +104,24 @@ def parse_chat_messages(chats) -> List[ChatMessage]:
         emotes = chat.get('emotes')
         if emotes:
             for emote in emotes:
-                utfId = emote['id']
-                shortcuts = emote['shortcuts']
+                utfId = emote.get('id')
+                shortcuts = emote.get('shortcuts')
                 # "Custom emojis" use sprite images, not UTF characters, and SRT cannot display images, so ignore these.
-                isNotCustomEmoji = not emote['is_custom_emoji']
+                isNotCustomEmoji = emote.get('is_custom_emoji') == False
                 if utfId and shortcuts and isNotCustomEmoji:
                     for shortcut in shortcuts:
                         messageText = messageText.replace(shortcut, utfId)
+        author = chat['author']
+        color: str = author.get('colour')
+        if not color:
+            color = '00FF00'
+        else:
+            color = color.strip('#')
         chatMessages.append(ChatMessage(
             timestamp_seconds=chat['time_in_seconds'],
-            author=chat['author']['name'],
-            message_text=messageText))
+            author=author['name'],
+            message_text=messageText,
+            color=color))
     return chatMessages
 
 def parse_srt_lines(chat_messages: List[ChatMessage], max_seconds_onscreen: float = 5) -> List[SrtLine]:
@@ -122,7 +135,8 @@ def parse_srt_lines(chat_messages: List[ChatMessage], max_seconds_onscreen: floa
             start_time_seconds=chatMessage.TimestampSeconds,
             end_time_seconds=min(nextTimestampSeconds, chatMessage.TimestampSeconds + max_seconds_onscreen),
             author=chatMessage.Author,
-            message_text=chatMessage.MessageText))
+            message_text=chatMessage.MessageText,
+            color=chatMessage.Color))
     return srtLines
 
 def parse_ass_lines(chat_messages: List[ChatMessage], max_seconds_onscreen: float = 5, grouping_interval_seconds: float = 5, max_subtitles_onscreen: int = 5) -> List[AssLine]:
@@ -153,7 +167,8 @@ def parse_ass_lines(chat_messages: List[ChatMessage], max_seconds_onscreen: floa
                     start_time_seconds=chatMessage.TimestampSeconds,
                     end_time_seconds=chatMessage.TimestampSeconds + timeOnscreen,
                     author=chatMessage.Author,
-                    message_text=chatMessage.MessageText))
+                    message_text=chatMessage.MessageText,
+                    color=chatMessage.Color))
         minIndex = maxIndex + 1
         minTimestamp += grouping_interval_seconds
         maxTimestamp += grouping_interval_seconds
