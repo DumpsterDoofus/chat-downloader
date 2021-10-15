@@ -163,7 +163,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--url', required=True)
     parser.add_argument('--max_seconds_onscreen', required=False, default=5)
-    parser.add_argument('--smoothing_interval_seconds', required=False, default=5)
+    parser.add_argument('--smoothing_interval_seconds', required=False, default=10)
     parser.add_argument('--title', required=False, default='subtitles')
 
     subparsers = parser.add_subparsers(dest='command', required=True)
@@ -173,9 +173,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    chatMessages = parse_chat_messages(ChatDownloader().get_chat(args.url))
+    chat = ChatDownloader().get_chat(args.url)
+    chatMessages = parse_chat_messages(chat)
     even_spaced_timestamp_filter(chatMessages, args.smoothing_interval_seconds)
-    
+
     if args.command == 'srt':
         lines = parse_srt_lines(chatMessages, args.max_seconds_onscreen)
     elif args.command == 'ass':
