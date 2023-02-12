@@ -76,7 +76,7 @@ For example, to save messages from a livestream to a JSON file, you can use:
 
 .. code:: console
 
-   $ chat_downloader https://www.youtube.com/watch?v=5qap5aO4i9A --output chat.json
+   $ chat_downloader https://www.youtube.com/watch?v=jfKfPfyJRdk --output chat.json
 
 
 
@@ -90,7 +90,7 @@ Python
 
    from chat_downloader import ChatDownloader
 
-   url = 'https://www.youtube.com/watch?v=5qap5aO4i9A'
+   url = 'https://www.youtube.com/watch?v=jfKfPfyJRdk'
    chat = ChatDownloader().get_chat(url)       # create a generator
    for message in chat:                        # iterate over messages
        chat.print_formatted(message)           # print the formatted message
@@ -163,6 +163,7 @@ Supported sites:
 -  YouTube.com - Livestreams, past broadcasts and premieres.
 -  Twitch.tv - Livestreams, past broadcasts and clips.
 -  Reddit.com - Livestreams, past broadcasts
+-  Zoom.us - Past broadcasts
 -  Facebook.com (currently in development) - Livestreams and past
    broadcasts.
 

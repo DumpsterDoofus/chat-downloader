@@ -23,11 +23,19 @@
     :undoc-members:
     :show-inheritance:
 
+:py:class:`RedditChatDownloader`
+********************************
 
-:py:class:`FacebookChatDownloader`
-**********************************
+.. autoclass:: chat_downloader.sites.RedditChatDownloader
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-.. autoclass:: chat_downloader.sites.FacebookChatDownloader
+
+:py:class:`ZoomChatDownloader`
+********************************
+
+.. autoclass:: chat_downloader.sites.ZoomChatDownloader
     :members:
     :undoc-members:
     :show-inheritance:
